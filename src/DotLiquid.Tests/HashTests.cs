@@ -180,7 +180,8 @@ namespace DotLiquid.Tests
             Helper.AssertTemplateResult(
                 expected: "JaneMike",
                 template: "{% for item in People %}{{ item.First }}{%endfor%}",
-                localVariables: hash);
+                localVariables: hash,
+                syntax: SyntaxCompatibility.DotLiquid20);
 
             // Test using direct variable access
             Helper.AssertTemplateResult(

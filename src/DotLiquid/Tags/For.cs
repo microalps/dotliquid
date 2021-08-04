@@ -163,11 +163,9 @@ namespace DotLiquid.Tags
                     context.CheckTimeout();
 
                     var item = segment[index];
-                    if (item is KeyValuePair<string, object> pair)
+                    if (context.SyntaxCompatibilityLevel < SyntaxCompatibility.DotLiquid22 && item is KeyValuePair<string, object> pair && pair.Value is IDictionary<string, object> valueDict)
                     {
-                        var itemKey = pair.Key;
-                        var itemValue = pair.Value;
-                        BuildContext(context, _variableName, itemKey, itemValue);
+                        context[_variableName] = new LegacyKeyValueDrop(pair.Key, valueDict);
 
                     }
                     else
@@ -222,19 +220,6 @@ namespace DotLiquid.Tags
                 }
             }
             return segments;
-        }
-
-        private void BuildContext(Context context, string parent, string key, object value)
-        {
-            if (value is IDictionary<string, object> dictionary)
-            {
-                dictionary["itemName"] = key;
-                context[parent] = value;
-
-                // Iterate entries and recursively call this method for any IDcitionary values.
-                foreach (var entry in dictionary.Where<KeyValuePair<string, object>>(entry => entry.Value is IDictionary<string, object>))
-                    BuildContext(context, parent + "." + key, entry.Key, entry.Value);
-            }
         }
     }
 }
