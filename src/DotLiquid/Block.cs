@@ -185,7 +185,7 @@ namespace DotLiquid
                 }
                 catch (Exception ex)
                 {
-                    if (ex.InnerException is LiquidException)
+                    if (ex is System.Reflection.TargetInvocationException || ex.InnerException is LiquidException)
                     {
                         ex = ex.InnerException;
                     }

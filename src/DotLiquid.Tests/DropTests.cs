@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -46,6 +47,25 @@ namespace DotLiquid.Tests
             public override object BeforeMethod(string method)
             {
                 return Context[method];
+            }
+        }
+
+        internal class CancellationDrop : Drop
+        {
+            public string Halt
+            {
+                get
+                {
+                    var timeToWait = (int)Context["sleep_time"];
+                    while (timeToWait > 0)
+                    {
+                        var sleepTime = Math.Min(timeToWait, 50);
+                        System.Threading.Tasks.Task.Delay(sleepTime, Context.CancellationToken).GetAwaiter().GetResult();
+                        timeToWait -= sleepTime;
+                    }
+
+                    return "Here";
+                }
             }
         }
 
@@ -351,6 +371,29 @@ namespace DotLiquid.Tests
         public void TestAccessContextFromDrop()
         {
             Assert.AreEqual("123", Template.Parse("{% for a in dummy %}{{ context.loop_pos }}{% endfor %}").Render(Hash.FromAnonymousObject(new { context = new ContextDrop(), dummy = new[] { 1, 2, 3 } })));
+        }
+
+        [Test]
+        public void TestCancelBlockingOperationDrop()
+        {
+            var renderParameters = new RenderParameters(CultureInfo.InvariantCulture)
+            {
+                Timeout = 80,
+                LocalVariables = Hash.FromAnonymousObject(new { drop = new CancellationDrop(), sleep_time = 100 })
+            };
+            Assert.Throws<System.Threading.Tasks.TaskCanceledException>(() => Template.Parse("{{ drop.halt }}").Render(renderParameters));
+        }
+
+        [Test]
+        public void TestRenderUncancelledOperationDrop()
+        {
+            var renderParameters = new RenderParameters(CultureInfo.InvariantCulture)
+            {
+                Timeout = 80,
+                LocalVariables = Hash.FromAnonymousObject(new { drop = new CancellationDrop(), sleep_time = 50 })
+            };
+            Assert.AreEqual("Here", Template.Parse("{{ drop.halt }}").Render(renderParameters));
+            Assert.Throws<System.Threading.Tasks.TaskCanceledException>(() => Template.Parse("{{ drop.halt }}{{ drop.halt }}").Render(renderParameters));
         }
 
         [Test]

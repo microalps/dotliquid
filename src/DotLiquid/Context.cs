@@ -16,7 +16,7 @@ namespace DotLiquid
     /// <summary>
     /// Context keeps the variable stack and resolves variables, as well as keywords
     /// </summary>
-    public class Context
+    public class Context : IDisposable
     {
         private static readonly HashSet<char> SpecialCharsSet = new HashSet<char>() { '\'', '"', '(', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-' };
         private static readonly Regex SingleQuotedRegex = R.C(R.Q(@"^'(.*)'$"));
@@ -41,6 +41,28 @@ namespace DotLiquid
         }
 
         private Strainer _strainer;
+
+        /// <summary>
+        /// A cancellation token which indicates if the template render has been cancelled
+        /// </summary>
+        public CancellationToken CancellationToken
+        {
+            get
+            {
+                if (_timeout > 0)
+                {
+                    var delay = _timeout - _stopwatch.ElapsedMilliseconds;
+                    CheckTimeout(); //Make sure it hasn't timed out since delay must not be less than 0
+                    lock (_cancellationTokenSourceLock)
+                    {
+                        _cancellationTokenSource?.Dispose();
+                        _cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(delay));
+                        return _cancellationTokenSource.Token;
+                    }
+                }
+                return _cancellationToken;
+            }
+        }
 
         /// <summary>
         /// Environments
@@ -721,6 +743,9 @@ namespace DotLiquid
         private readonly int _timeout;
         private readonly Stopwatch _stopwatch = new Stopwatch();
         private readonly CancellationToken _cancellationToken = CancellationToken.None;
+        private readonly object _cancellationTokenSourceLock = new object();
+        private CancellationTokenSource _cancellationTokenSource;
+        private bool disposedValue;
 
         public void RestartTimeout()
         {
@@ -736,6 +761,23 @@ namespace DotLiquid
             }
 
             _cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        /// <summary>Releases all resources used by the current instance of the <see cref="Context" /> class.</summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                _cancellationTokenSource?.Dispose();
+                disposedValue = true;
+            }
+        }
+
+        /// <summary>Releases all resources used by the current instance of the <see cref="Context" /> class.</summary>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
         }
     }
 }
