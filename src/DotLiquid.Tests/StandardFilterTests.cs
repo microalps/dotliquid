@@ -1387,11 +1387,16 @@ PaulGeorge",
                 Helper.AssertTemplateResult("2", "{{ 1.2 | ceil }}");
                 Helper.AssertTemplateResult("2", "{{ 2.0 | ceil }}");
                 Helper.AssertTemplateResult("184", "{{ 183.357 | ceil }}");
+                Helper.AssertTemplateResult("2184", "{{ 2,183.357 | ceil }}");
                 Helper.AssertTemplateResult("4", "{{ \"3.5\" | ceil }}");
-
-                Assert.Null(StandardFilters.Ceil(_contextV20, ""));
-                Assert.Null(StandardFilters.Ceil(_contextV20, "two"));
             }
+
+            Assert.Null(StandardFilters.Ceil(_contextV20, ""));
+            Assert.Null(StandardFilters.Ceil(_contextV20, "two"));
+            Assert.AreEqual(4, StandardFilters.Ceil(_contextV20, 3.5));
+            Assert.AreEqual(1024, StandardFilters.Ceil(_contextV20, 1023.5));
+            Assert.AreEqual(4, StandardFilters.Ceil(_contextV20, "3.5"));
+            Assert.AreEqual(1024, StandardFilters.Ceil(_contextV20, "1,023.5"));
         }
 
 
@@ -1403,12 +1408,16 @@ PaulGeorge",
                 Helper.AssertTemplateResult("2", "{{ 1,2 | ceil }}");
                 Helper.AssertTemplateResult("2", "{{ 2,0 | ceil }}");
                 Helper.AssertTemplateResult("184", "{{ 183,357 | ceil }}");
+                Helper.AssertTemplateResult("2184", "{{ 2.183,357 | ceil }}");
                 Helper.AssertTemplateResult("4", "{{ \"3,5\" | ceil }}");
-
-                Assert.Null(StandardFilters.Ceil(_contextV20, ""));
-                Assert.Null(StandardFilters.Ceil(_contextV20, "two"));
-                Assert.AreEqual(4, StandardFilters.Ceil(_contextGreekCultureV20, "3,5"));
             }
+
+            Assert.Null(StandardFilters.Ceil(_contextGreekCultureV20, ""));
+            Assert.Null(StandardFilters.Ceil(_contextGreekCultureV20, "two"));
+            Assert.AreEqual(4, StandardFilters.Ceil(_contextGreekCultureV20, 3.5));
+            Assert.AreEqual(1024, StandardFilters.Ceil(_contextGreekCultureV20, 1023.5));
+            Assert.AreEqual(4, StandardFilters.Ceil(_contextGreekCultureV20, "3,5"));
+            Assert.AreEqual(1024, StandardFilters.Ceil(_contextGreekCultureV20, "1.023,5"));
         }
 
         [Test]
@@ -1419,11 +1428,16 @@ PaulGeorge",
                 Helper.AssertTemplateResult("1", "{{ 1.2 | floor }}");
                 Helper.AssertTemplateResult("2", "{{ 2.0 | floor }}");
                 Helper.AssertTemplateResult("183", "{{ 183.357 | floor }}");
+                Helper.AssertTemplateResult("2183", "{{ 2,183.357 | floor }}");
                 Helper.AssertTemplateResult("3", "{{ \"3.5\" | floor }}");
-
-                Assert.Null(StandardFilters.Floor(_contextV20, ""));
-                Assert.Null(StandardFilters.Floor(_contextV20, "two"));
             }
+
+            Assert.Null(StandardFilters.Floor(_contextV20, ""));
+            Assert.Null(StandardFilters.Floor(_contextV20, "two"));
+            Assert.AreEqual(3, StandardFilters.Floor(_contextV20, 3.5));
+            Assert.AreEqual(1023, StandardFilters.Floor(_contextV20, 1023.5));
+            Assert.AreEqual(3, StandardFilters.Floor(_contextV20, "3.5"));
+            Assert.AreEqual(1023, StandardFilters.Floor(_contextV20, "1,023.5"));
         }
 
         [Test]
@@ -1434,12 +1448,16 @@ PaulGeorge",
                 Helper.AssertTemplateResult("1", "{{ 1,2 | floor }}");
                 Helper.AssertTemplateResult("2", "{{ 2,0 | floor }}");
                 Helper.AssertTemplateResult("183", "{{ 183,357 | floor }}");
+                Helper.AssertTemplateResult("2183", "{{ 2.183,357 | floor }}");
                 Helper.AssertTemplateResult("3", "{{ \"3,5\" | floor }}");
-
-                Assert.Null(StandardFilters.Floor(_contextV20, ""));
-                Assert.Null(StandardFilters.Floor(_contextV20, "two"));
-                Assert.AreEqual(3, StandardFilters.Floor(_contextGreekCultureV20, "3,5"));
             }
+
+            Assert.Null(StandardFilters.Floor(_contextGreekCultureV20, ""));
+            Assert.Null(StandardFilters.Floor(_contextGreekCultureV20, "two"));
+            Assert.AreEqual(3, StandardFilters.Floor(_contextGreekCultureV20, 3.5));
+            Assert.AreEqual(1023, StandardFilters.Floor(_contextGreekCultureV20, 1023.5));
+            Assert.AreEqual(3, StandardFilters.Floor(_contextGreekCultureV20, "3,5"));
+            Assert.AreEqual(1023, StandardFilters.Floor(_contextGreekCultureV20, "1.023,5"));
         }
 
         [Test]
@@ -1694,9 +1712,11 @@ PaulGeorge",
             Assert.AreEqual(5, StandardFilters.Abs(_contextV20, -5));
             Assert.AreEqual(19.86, StandardFilters.Abs(_contextV20, 19.86));
             Assert.AreEqual(19.86, StandardFilters.Abs(_contextV20, -19.86));
+            Assert.AreEqual(1530.60, StandardFilters.Abs(_contextV20, -1530.60));
             Assert.AreEqual(10, StandardFilters.Abs(_contextV20, "10"));
             Assert.AreEqual(5, StandardFilters.Abs(_contextV20, "-5"));
             Assert.AreEqual(30.60, StandardFilters.Abs(_contextV20, "30.60"));
+            Assert.AreEqual(1530.60, StandardFilters.Abs(_contextV20, "1,530.60"));
             Assert.AreEqual(0, StandardFilters.Abs(_contextV20, "30.60a"));
 
             Helper.AssertTemplateResult(
@@ -1721,9 +1741,11 @@ PaulGeorge",
             Assert.AreEqual(5, StandardFilters.Abs(_contextGreekCultureV20, -5));
             Assert.AreEqual(19.86, StandardFilters.Abs(_contextGreekCultureV20, 19.86));
             Assert.AreEqual(19.86, StandardFilters.Abs(_contextGreekCultureV20, -19.86));
+            Assert.AreEqual(1530.60, StandardFilters.Abs(_contextGreekCultureV20, -1530.60));
             Assert.AreEqual(10, StandardFilters.Abs(_contextGreekCultureV20, "10"));
             Assert.AreEqual(5, StandardFilters.Abs(_contextGreekCultureV20, "-5"));
             Assert.AreEqual(30.60, StandardFilters.Abs(_contextGreekCultureV20, "30,60"));
+            Assert.AreEqual(1530.60, StandardFilters.Abs(_contextGreekCultureV20, "1.530,60"));
             Assert.AreEqual(0, StandardFilters.Abs(_contextGreekCultureV20, "30,60a"));
 
             using (CultureHelper.SetCulture("el-GR"))
@@ -1751,8 +1773,14 @@ PaulGeorge",
             Assert.AreEqual(10, StandardFilters.AtLeast(_contextV20, 10, 5));
             Assert.AreEqual(9.85, StandardFilters.AtLeast(_contextV20, 9.85, 5));
             Assert.AreEqual(5, StandardFilters.AtLeast(_contextV20, 3.56, 5));
+            Assert.AreEqual(5, StandardFilters.AtLeast(_contextV20, 5, 3.56));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextV20, 1023.56, 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextV20, 5, 1023.56));
             Assert.AreEqual(10, StandardFilters.AtLeast(_contextV20, "10", 5));
             Assert.AreEqual(5, StandardFilters.AtLeast(_contextV20, "4", 5));
+            Assert.AreEqual(5, StandardFilters.AtLeast(_contextV20, "3.56", 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextV20, "1,023.56", 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextV20, "1,023.56", "1,000"));
             Assert.AreEqual("10a", StandardFilters.AtLeast(_contextV20, "10a", 5));
             Assert.AreEqual("4b", StandardFilters.AtLeast(_contextV20, "4b", 5));
 
@@ -1774,8 +1802,14 @@ PaulGeorge",
             Assert.AreEqual(10, StandardFilters.AtLeast(_contextGreekCultureV20, 10, 5));
             Assert.AreEqual(9.85, StandardFilters.AtLeast(_contextGreekCultureV20, 9.85, 5));
             Assert.AreEqual(5, StandardFilters.AtLeast(_contextGreekCultureV20, 3.56, 5));
+            Assert.AreEqual(5, StandardFilters.AtLeast(_contextGreekCultureV20, 5, 3.56));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextGreekCultureV20, 1023.56, 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextGreekCultureV20, 5, 1023.56));
             Assert.AreEqual(10, StandardFilters.AtLeast(_contextGreekCultureV20, "10", 5));
             Assert.AreEqual(5, StandardFilters.AtLeast(_contextGreekCultureV20, "4", 5));
+            Assert.AreEqual(5, StandardFilters.AtLeast(_contextGreekCultureV20, "3,56", 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextGreekCultureV20, "1.023,56", 5));
+            Assert.AreEqual(1023.56, StandardFilters.AtLeast(_contextGreekCultureV20, "1.023,56", "1.000"));
             Assert.AreEqual("10a", StandardFilters.AtLeast(_contextGreekCultureV20, "10a", 5));
             Assert.AreEqual("4b", StandardFilters.AtLeast(_contextGreekCultureV20, "4b", 5));
 
@@ -1800,8 +1834,14 @@ PaulGeorge",
             Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, 10, 5));
             Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, 9.85, 5));
             Assert.AreEqual(3.56, StandardFilters.AtMost(_contextV20, 3.56, 5));
+            Assert.AreEqual(3.56, StandardFilters.AtMost(_contextV20, 5, 3.56));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, 1023.56, 5));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, 5, 1023.56));
             Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, "10", 5));
             Assert.AreEqual(4, StandardFilters.AtMost(_contextV20, "4", 5));
+            Assert.AreEqual(3.56, StandardFilters.AtMost(_contextV20, "3.56", 5));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextV20, "1,023.56", 5));
+            Assert.AreEqual(1000, StandardFilters.AtMost(_contextV20, "1,023.56", "1,000"));
             Assert.AreEqual("4a", StandardFilters.AtMost(_contextV20, "4a", 5));
             Assert.AreEqual("10b", StandardFilters.AtMost(_contextV20, "10b", 5));
 
@@ -1823,8 +1863,14 @@ PaulGeorge",
             Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, 10, 5));
             Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, 9.85, 5));
             Assert.AreEqual(3.56, StandardFilters.AtMost(_contextGreekCultureV20, 3.56, 5));
+            Assert.AreEqual(3.56, StandardFilters.AtMost(_contextGreekCultureV20, 5, 3.56));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, 1023.56, 5));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, 5, 1023.56));
             Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, "10", 5));
-            Assert.AreEqual(4, StandardFilters.AtMost(_contextV20, "4", 5));
+            Assert.AreEqual(4, StandardFilters.AtMost(_contextGreekCultureV20, "4", 5));
+            Assert.AreEqual(3.56, StandardFilters.AtMost(_contextGreekCultureV20, "3,56", 5));
+            Assert.AreEqual(5, StandardFilters.AtMost(_contextGreekCultureV20, "1.023,56", 5));
+            Assert.AreEqual(1000, StandardFilters.AtMost(_contextGreekCultureV20, "1.023,56", "1.000"));
             Assert.AreEqual("4a", StandardFilters.AtMost(_contextGreekCultureV20, "4a", 5));
             Assert.AreEqual("10b", StandardFilters.AtMost(_contextGreekCultureV20, "10b", 5));
 
