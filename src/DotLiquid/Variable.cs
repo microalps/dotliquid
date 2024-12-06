@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using DotLiquid.Exceptions;
 using DotLiquid.Util;
@@ -22,11 +23,12 @@ namespace DotLiquid
     /// </summary>
     public class Variable : IRenderable
     {
-        private static readonly Regex FilterParserRegex = R.B(R.Q(@"(?:\s+|{0}|{1})+"), Liquid.QuotedFragment, Liquid.ArgumentSeparator);
-        private static readonly Regex FilterArgRegex = R.B(R.Q(@"(?:{0}|{1})\s*({2})"), Liquid.FilterArgumentSeparator, Liquid.ArgumentSeparator, Liquid.QuotedFragment);
-        private static readonly Regex QuotedAssignFragmentRegex = R.B(R.Q(@"\s*({0})(.*)"), Liquid.QuotedAssignFragment);
-        private static readonly Regex FilterSeparatorRegex = R.B(R.Q(@"{0}\s*(.*)"), Liquid.FilterSeparator);
-        private static readonly Regex FilterNameRegex = R.B(R.Q(@"\s*(\w+)"));
+        private const char CharPipe = '|';
+        private const char CharColon = ':';
+        private const char CharComma = ',';
+        private static readonly HashSet<char> SearchPipeOrQuoted = new HashSet<char> { CharPipe, '\'', '"' };
+        private static readonly HashSet<char> SearchPipeColonOrQuoted = new HashSet<char> { CharPipe, CharColon, '\'', '"' };
+        private static readonly HashSet<char> SearchPipeCommaOrQuoted = new HashSet<char> { CharPipe, CharComma, '\'', '"' };
 
         public List<Filter> Filters { get; set; }
         public string Name { get; set; }
@@ -35,29 +37,29 @@ namespace DotLiquid
 
         public Variable(string markup)
         {
+            var partsEnumerator = new DotLiquid.Util.CharEnumerator(markup);
+
             _markup = markup;
 
-            Name = null;
+            Name = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeOrQuoted).Trim();
             Filters = new List<Filter>();
 
-            Match match = QuotedAssignFragmentRegex.Match(markup);
-            if (match.Success)
+            while (partsEnumerator.HasNext() && partsEnumerator.Next == CharPipe)
             {
-                Name = match.Groups[1].Value;
-                Match filterMatch = FilterSeparatorRegex.Match(match.Groups[2].Value);
-                if (filterMatch.Success)
+                partsEnumerator.MoveNext(); // pass over the pipe
+                var filterName = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeColonOrQuoted).Trim();
+
+                List<string> filterArgs = new List<string>();
+                if (partsEnumerator.HasNext() && partsEnumerator.Next == CharColon)
                 {
-                    foreach (string f in R.Scan(filterMatch.Value, FilterParserRegex))
+                    do
                     {
-                        Match filterNameMatch = FilterNameRegex.Match(f);
-                        if (filterNameMatch.Success)
-                        {
-                            string filterName = filterNameMatch.Groups[1].Value;
-                            List<string> filterArgs = R.Scan(f, FilterArgRegex);
-                            Filters.Add(new Filter(filterName, filterArgs.ToArray()));
-                        }
-                    }
+                        partsEnumerator.MoveNext(); // pass over the colon or comma
+                        var arg = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeCommaOrQuoted).Trim();
+                        filterArgs.Add(arg);
+                    } while (partsEnumerator.HasNext() && partsEnumerator.Next == CharComma);
                 }
+                Filters.Add(new Filter(filterName, filterArgs.ToArray()));
             }
         }
 

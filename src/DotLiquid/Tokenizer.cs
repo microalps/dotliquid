@@ -16,6 +16,7 @@ namespace DotLiquid
         private static readonly char BracketEnd = ']';
         private static readonly HashSet<char> SearchQuoteOrVariableEnd = new HashSet<char> { '}', '\'', '"' };
         private static readonly HashSet<char> SearchQuoteOrTagEnd = new HashSet<char> { '%', '\'', '"' };
+        private static readonly HashSet<char> SearchQuote = new HashSet<char> { '\'', '"' };
         private static readonly char[] WhitespaceCharsV20 = new char[] { '\t', ' ' };
         private static readonly char[] WhitespaceCharsV22 = new char[] { '\t', '\n', '\v', '\f', '\r', ' ' };
         private static readonly Regex LiquidAnyStartingTagRegex = R.B(R.Q(@"({0})([-])?"), Liquid.AnyStartingTag);
@@ -169,7 +170,7 @@ namespace DotLiquid
         /// </summary>
         /// <param name="markupEnumerator">The string enumerator</param>
         /// <param name="markupLength">The number of characters to read</param>
-        private static string ReadChars(CharEnumerator markupEnumerator, int markupLength)
+        internal static string ReadChars(CharEnumerator markupEnumerator, int markupLength)
         {
             var sb = new StringBuilder(markupLength);
             for (var i = 0; i < markupLength; i++)
@@ -185,7 +186,7 @@ namespace DotLiquid
         /// <param name="searchChars">The character set to search for</param>
         /// <param name="syntaxCompatibilityLevel">The Liquid syntax flag used for backward compatibility</param>
         /// <returns>True if reaches end sequence, otherwise false</returns>
-        private static bool ReadToEndOfTag(StringBuilder sb, CharEnumerator markupEnumerator, HashSet<char> searchChars, SyntaxCompatibility syntaxCompatibilityLevel)
+        public static bool ReadToEndOfTag(StringBuilder sb, CharEnumerator markupEnumerator, HashSet<char> searchChars, SyntaxCompatibility syntaxCompatibilityLevel)
         {
             while (markupEnumerator.AppendNext(sb))
             {
@@ -221,12 +222,32 @@ namespace DotLiquid
                                 return true;
                             }
                             break;
+                        default:
+                            return true;
                     }
                 }
             };
 
             // Somehow we reached the end without finding the end character(s)
             return false;
+        }
+
+        /// <summary>
+        /// Reads a token until, and inclusive of, the end character and advances the enumerator position
+        /// </summary>
+        /// <param name="markupEnumerator">The string enumerator</param>
+        /// <param name="endChar">The character that indicates end of token</param>
+        internal static string ReadToChar(CharEnumerator markupEnumerator, char endChar)
+        {
+            var sb = new StringBuilder(markupEnumerator.Remaining);
+            while (markupEnumerator.HasNext())
+            {
+                if (markupEnumerator.Next == endChar)
+                    break;
+                else
+                    markupEnumerator.AppendNext(sb);
+            };
+            return sb.ToString();
         }
 
         /// <summary>
@@ -265,6 +286,34 @@ namespace DotLiquid
                     return false;
             };
             return true;
+        }
+
+        /// <summary>
+        /// Reads a token until the end of a segment and advances the enumerator position
+        /// </summary>
+        /// <param name="markupEnumerator">The string enumerator</param>
+        /// <param name="searchChars">The search characters to read to, not including these characters</param>
+        /// <returns>True if valid variable, otherwise false</returns>
+        internal static string ReadToSearchChars(CharEnumerator markupEnumerator, HashSet<char> searchChars)
+        {
+            var sb = new StringBuilder(markupEnumerator.Remaining);
+            while (markupEnumerator.HasNext() )
+            {
+                var nextChar = markupEnumerator.Next;
+                
+                if (searchChars.Contains(nextChar))
+                {
+                    if (SearchQuote.Contains(nextChar))
+                    {
+                        markupEnumerator.AppendNext(sb);
+                        ReadToChar(sb, markupEnumerator, nextChar);
+                    }
+                    else
+                        break;
+                } else
+                    markupEnumerator.AppendNext(sb);
+            };
+            return sb.ToString();
         }
 
         /// <summary>
