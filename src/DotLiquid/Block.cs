@@ -13,9 +13,6 @@ namespace DotLiquid
     /// </summary>
     public class Block : Tag
     {
-        private const string TagStart = "{%";
-        private const string VariableStart = "{{";
-        private const string VariableEnd = "}}";
 
         internal static readonly Regex FullToken = R.B(@"^{0}\s*(\w+)\s*((?s:.*)?){1}$", Liquid.TagStart, Liquid.TagEnd);
 
@@ -31,7 +28,7 @@ namespace DotLiquid
             string token;
             while ((token = tokens.Shift()) != null)
             {
-                if (token.Length > 4 && token.Substring(0, 2) == TagStart)
+                if (token.Length > 4 && token.Substring(0, 2) == Tokenizer.TagStart)
                 {
                     Match fullTokenMatch = FullToken.Match(token);
                     if (fullTokenMatch.Success)
@@ -66,7 +63,7 @@ namespace DotLiquid
                         throw new SyntaxException(Liquid.ResourceManager.GetString("BlockTagNotTerminatedException"), token, Liquid.TagEnd);
                     }
                 }
-                else if (token.Length > 4 && token.Substring(0, 2) == VariableStart)
+                else if (token.Length > 4 && token.Substring(0, 2) == Tokenizer.VariableStart)
                 {
                     NodeList.Add(CreateVariable(token));
                 }
@@ -135,7 +132,7 @@ namespace DotLiquid
         /// <returns></returns>
         public Variable CreateVariable(string token)
         {
-            if (token.Substring(token.Length - 2, 2) == VariableEnd)
+            if (token.Substring(token.Length - 2, 2) == Tokenizer.VariableEnd)
                 return new Variable(token.Substring(2, token.Length - 4));
             throw new SyntaxException(Liquid.ResourceManager.GetString("BlockVariableNotTerminatedException"), token, Liquid.VariableEnd);
         }

@@ -246,14 +246,15 @@ namespace DotLiquid
         /// <summary>
         /// Invokes a strainer method
         /// </summary>
-        /// <param name="method"></param>
-        /// <param name="args"></param>
+        /// <param name="method">The method token.</param>
+        /// <param name="args">The ordered arguments for invoking the method</param>
+        /// <param name="namedArgs">The named arguments for invoking the method</param>
         /// <returns></returns>
-        public object Invoke(string method, List<object> args)
+        public object Invoke(string method, List<object> args, Dictionary<string, object> namedArgs = null)
         {
             if (Strainer.RespondTo(method))
             {
-                return Strainer.Invoke(method, args);
+                return Strainer.Invoke(method, args, namedArgs);
             }
 
             if (SyntaxCompatibilityLevel >= SyntaxCompatibility.DotLiquid22)

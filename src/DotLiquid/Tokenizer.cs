@@ -12,11 +12,24 @@ namespace DotLiquid
     /// </summary>
     internal static class Tokenizer
     {
+        internal const string TagStart = "{%";
+        internal const string VariableStart = "{{";
+        internal const string VariableEnd = "}}";
+        internal const char CharPipe = '|';
+        internal const char CharColon = ':';
+        internal const char CharComma = ',';
+        private const char CharSingleQuote = '\'';
+        private const char CharDoubleQuote = '"';
+        private const char BracketEnd = ']';
+
         private static readonly HashSet<char> SearchVariableEnd = new HashSet<char> { '[', '.' };
-        private static readonly char BracketEnd = ']';
-        private static readonly HashSet<char> SearchQuoteOrVariableEnd = new HashSet<char> { '}', '\'', '"' };
-        private static readonly HashSet<char> SearchQuoteOrTagEnd = new HashSet<char> { '%', '\'', '"' };
-        private static readonly HashSet<char> SearchQuote = new HashSet<char> { '\'', '"' };
+        private static readonly HashSet<char> SearchQuoteOrVariableEnd = new HashSet<char> { '}', CharSingleQuote, CharDoubleQuote };
+        private static readonly HashSet<char> SearchQuoteOrTagEnd = new HashSet<char> { '%', CharSingleQuote, CharDoubleQuote };
+        private static readonly HashSet<char> SearchQuote = new HashSet<char> { CharSingleQuote, CharDoubleQuote };
+        internal static readonly HashSet<char> SearchPipeOrQuoted = new HashSet<char> { CharPipe, CharSingleQuote, CharDoubleQuote };
+        internal static readonly HashSet<char> SearchPipeColonOrQuoted = new HashSet<char> { CharPipe, CharColon, CharSingleQuote, CharDoubleQuote };
+        internal static readonly HashSet<char> SearchPipeCommaOrQuoted = new HashSet<char> { CharPipe, CharComma, CharSingleQuote, '"' };
+        internal static readonly HashSet<char> SearchPipeCommaColonOrQuoted = new HashSet<char> { CharPipe, CharComma, CharColon, CharSingleQuote, '"' };
         private static readonly char[] WhitespaceCharsV20 = new char[] { '\t', ' ' };
         private static readonly char[] WhitespaceCharsV22 = new char[] { '\t', '\n', '\v', '\f', '\r', ' ' };
         private static readonly Regex LiquidAnyStartingTagRegex = R.B(R.Q(@"({0})([-])?"), Liquid.AnyStartingTag);

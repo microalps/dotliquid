@@ -2113,6 +2113,23 @@ Cheapest products:
         }
 
         [Test]
+        public void TestBase64UrlSafeEncode_NamedArgument()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(StandardFilters.Base64UrlSafeEncode(input: "A", pad: true), Is.EqualTo("QQ=="));
+                Assert.That(StandardFilters.Base64UrlSafeEncode(input: "A", pad: false), Is.EqualTo("QQ"));
+                // Respect named arguments
+                Helper.AssertTemplateResult(expected: "QQ==", template: "{{ \"A\" | base64_url_safe_encode: pad:true }}");
+                Helper.AssertTemplateResult(expected: "QQ", template: "{{ \"A\" | base64_url_safe_encode: pad:false }}");
+
+                // Ignore unnamed arguments
+                Helper.AssertTemplateResult(expected: "QQ==", template: "{{ \"A\" | base64_url_safe_encode: true }}");
+                Helper.AssertTemplateResult(expected: "QQ==", template: "{{ \"A\" | base64_url_safe_encode: false }}");
+            });
+        }
+
+        [Test]
         public void TestBase64UrlSafeDecode_LiquidSample()
         {
             Assert.Multiple(() =>

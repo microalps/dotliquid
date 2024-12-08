@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -18,6 +19,7 @@ namespace DotLiquid
     {
         private static readonly Dictionary<string, Type> Filters = new Dictionary<string, Type>();
         private static readonly Dictionary<string, Tuple<object, MethodInfo>> FilterFuncs = new Dictionary<string, Tuple<object, MethodInfo>>();
+        private static ConcurrentDictionary<Type, LiquidFilterInfo[]> FilterReflectionCache = new ConcurrentDictionary<Type, LiquidFilterInfo[]>();
 
         public static void GlobalFilter(Type filter)
         {
@@ -45,9 +47,9 @@ namespace DotLiquid
         }
 
         private readonly Context _context;
-        private readonly Dictionary<string, IList<Tuple<object, MethodInfo>>> _methods = new Dictionary<string, IList<Tuple<object, MethodInfo>>>();
+        private readonly Dictionary<string, IList<Tuple<object, LiquidFilterInfo>>> _methods = new Dictionary<string, IList<Tuple<object, LiquidFilterInfo>>>();
 
-        public IEnumerable<MethodInfo> Methods
+        public IEnumerable<LiquidFilterInfo> Methods
         {
             get { return _methods.Values.SelectMany(m => m.Select(x => x.Item2)); }
         }
@@ -65,7 +67,7 @@ namespace DotLiquid
         public void Extend(Type type)
         {
             // Calls to Extend replace existing filters with the same number of params.
-            var methods = type.GetRuntimeMethods().Where(m => m.IsPublic && m.IsStatic);
+            var methods = FilterReflectionCache.GetOrAdd(type, k => type.GetRuntimeMethods().Where(m => m.IsPublic && m.IsStatic).Select(m => new LiquidFilterInfo(m)).ToArray());
             foreach (var method in methods)
             {
                 string methodName = Template.NamingConvention.GetMemberName(method.Name);
@@ -75,7 +77,7 @@ namespace DotLiquid
                 }
             }
 
-            foreach (MethodInfo methodInfo in methods)
+            foreach (LiquidFilterInfo methodInfo in methods)
             {
                 AddMethodInfo(methodInfo.Name, null, methodInfo);
             } // foreach
@@ -91,10 +93,12 @@ namespace DotLiquid
             AddMethodInfo(rawName, func.Target, func.GetMethodInfo());
         }
 
-        public void AddMethodInfo(string rawName, object target, MethodInfo method)
+        public void AddMethodInfo(string rawName, object target, MethodInfo method) => AddMethodInfo(rawName, target, new LiquidFilterInfo(method));
+
+        internal void AddMethodInfo(string rawName, object target, LiquidFilterInfo method)
         {
             var name = Template.NamingConvention.GetMemberName(rawName);
-            _methods.TryAdd(name, () => new List<Tuple<object, MethodInfo>>()).Add(Tuple.Create(target, method));
+            _methods.TryAdd(name, () => new List<Tuple<object, LiquidFilterInfo>>()).Add(Tuple.Create(target, method));
         }
 
         public bool RespondTo(string method)
@@ -106,25 +110,32 @@ namespace DotLiquid
         /// Invoke specified method with provided arguments
         /// </summary>
         /// <param name="method">The method token.</param>
-        /// <param name="args">The arguments for invoking the method</param>
+        /// <param name="args">The ordered arguments for invoking the method</param>
+        /// <param name="namedArgs">The named arguments for invoking the method</param>
         /// <returns>The method's return.</returns>
-        public object Invoke(string method, List<object> args)
+        public object Invoke(string method, List<object> args, Dictionary<string, object> namedArgs)
         {
-            // First, try to find a method with the same number of arguments minus context which we set automatically further down.
-            var methodInfo = _methods[method].FirstOrDefault(m => 
-                m.Item2.GetNonContextParameterCount() == args.Count);
-
+            // First, try to find a method with the same number of unnamed arguments which we set automatically further down.
             // If we failed to do so, try one with max numbers of arguments, hoping
             // that those not explicitly specified will be taken care of
             // by default values
-            if (methodInfo == null)
-                methodInfo = _methods[method].OrderByDescending(m => m.Item2.GetParameters().Length).First();
+            var methodInfo = _methods[method].FirstOrDefault(m => m.Item2.IsCountAndNamedMatch(args.Count, namedArgs?.Keys))
+                ?? _methods[method].OrderByDescending(m => m.Item2.GetParameters().Length).First();
 
             ParameterInfo[] parameterInfos = methodInfo.Item2.GetParameters();
 
             // If first parameter is Context, send in actual context.
-            if (parameterInfos.Length > 0 && parameterInfos[0].ParameterType == typeof(Context))
+            var isFirstParameterContext = parameterInfos.Length > 0 && parameterInfos[0].ParameterType == typeof(Context);
+            var firstParameterIndex = isFirstParameterContext ? 1 : 0;
+            if (isFirstParameterContext)
                 args.Insert(0, _context);
+
+            // Remove any arguments that exceed the method count
+            if (args.Count > methodInfo.Item2.OrderedParameterCount + firstParameterIndex)
+            {
+                var itemsToKeep = methodInfo.Item2.OrderedParameterCount + firstParameterIndex;
+                args.RemoveRange(itemsToKeep, args.Count - itemsToKeep);
+            }
 
             // Add in any default parameters - .NET won't do this for us.
             if (parameterInfos.Length > args.Count)
@@ -135,9 +146,22 @@ namespace DotLiquid
                     args.Add(parameterInfos[i].DefaultValue);
                 }
 
+            // Named arguments must have default values since they were created above. Now set their value accordingly 
+            if (namedArgs != null)
+            {
+                foreach (var namedArg in namedArgs)
+                {
+                    var matchedArg = parameterInfos.FirstOrDefault(p => Template.NamingConvention.GetMemberName(p.Name) == namedArg.Key);
+                    if (matchedArg == null)
+                        continue;
+
+                    args[matchedArg.Position] = namedArg.Value;
+                }
+            }
+
             // Attempt conversions where required by type mismatch and possible by value range.
             // These may be narrowing conversions (e.g. Int64 to Int32) when the actual range doesn't cause an overflow.
-            for (var argumentIndex = 0; argumentIndex < parameterInfos.Length; argumentIndex++)
+            for (var argumentIndex = firstParameterIndex; argumentIndex < parameterInfos.Length; argumentIndex++)
             {
                 if (args[argumentIndex] is IConvertible convertibleArg)
                 {

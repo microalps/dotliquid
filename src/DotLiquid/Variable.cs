@@ -3,10 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using DotLiquid.Exceptions;
-using DotLiquid.Util;
 
 namespace DotLiquid
 {
@@ -23,12 +20,6 @@ namespace DotLiquid
     /// </summary>
     public class Variable : IRenderable
     {
-        private const char CharPipe = '|';
-        private const char CharColon = ':';
-        private const char CharComma = ',';
-        private static readonly HashSet<char> SearchPipeOrQuoted = new HashSet<char> { CharPipe, '\'', '"' };
-        private static readonly HashSet<char> SearchPipeColonOrQuoted = new HashSet<char> { CharPipe, CharColon, '\'', '"' };
-        private static readonly HashSet<char> SearchPipeCommaOrQuoted = new HashSet<char> { CharPipe, CharComma, '\'', '"' };
 
         public List<Filter> Filters { get; set; }
         public string Name { get; set; }
@@ -41,25 +32,35 @@ namespace DotLiquid
 
             _markup = markup;
 
-            Name = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeOrQuoted).Trim();
+            Name = Tokenizer.ReadToSearchChars(partsEnumerator, Tokenizer.SearchPipeOrQuoted).Trim();
             Filters = new List<Filter>();
 
-            while (partsEnumerator.HasNext() && partsEnumerator.Next == CharPipe)
+            while (partsEnumerator.HasNext() && partsEnumerator.Next == Tokenizer.CharPipe)
             {
                 partsEnumerator.MoveNext(); // pass over the pipe
-                var filterName = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeColonOrQuoted).Trim();
+                var filterName = Tokenizer.ReadToSearchChars(partsEnumerator, Tokenizer.SearchPipeColonOrQuoted).Trim();
 
-                List<string> filterArgs = new List<string>();
-                if (partsEnumerator.HasNext() && partsEnumerator.Next == CharColon)
+                var filterArgs = new List<string>();
+                var namedArgs = new Dictionary<string, string>();
+                if (partsEnumerator.HasNext() && partsEnumerator.Next == Tokenizer.CharColon)
                 {
                     do
                     {
                         partsEnumerator.MoveNext(); // pass over the colon or comma
-                        var arg = Tokenizer.ReadToSearchChars(partsEnumerator, SearchPipeCommaOrQuoted).Trim();
-                        filterArgs.Add(arg);
-                    } while (partsEnumerator.HasNext() && partsEnumerator.Next == CharComma);
+                        var arg = Tokenizer.ReadToSearchChars(partsEnumerator, Tokenizer.SearchPipeCommaColonOrQuoted).Trim();
+                        if (partsEnumerator.HasNext() && partsEnumerator.Next == Tokenizer.CharColon)
+                        {
+                            partsEnumerator.MoveNext(); // pass over the colon
+                            var argValue = Tokenizer.ReadToSearchChars(partsEnumerator, Tokenizer.SearchPipeCommaOrQuoted).Trim();
+                            namedArgs.Add(arg, argValue);
+                        }
+                        else
+                        { 
+                            filterArgs.Add(arg);
+                        }
+                    } while (partsEnumerator.HasNext() && partsEnumerator.Next == Tokenizer.CharComma);
                 }
-                Filters.Add(new Filter(filterName, filterArgs.ToArray()));
+                Filters.Add(new Filter(filterName, filterArgs.ToArray()) { NamedArguments = namedArgs.Keys.Count > 0 ? namedArgs : null });
             }
         }
 
@@ -114,10 +115,12 @@ namespace DotLiquid
             foreach (var filter in Filters.ToList())
             {
                 List<object> filterArgs = filter.Arguments.Select(a => context[a]).ToList();
+                Dictionary<string, object> namedArgs = filter.NamedArguments?.Keys.Count > 0
+                    ? filter.NamedArguments.ToDictionary(a => a.Key, a => context[a.Value]) : null;
                 try
                 {
                     filterArgs.Insert(0, output);
-                    output = context.Invoke(filter.Name, filterArgs);
+                    output = context.Invoke(filter.Name, filterArgs, namedArgs);
                 }
                 catch (FilterNotFoundException ex)
                 {
@@ -153,6 +156,8 @@ namespace DotLiquid
 
             public string Name { get; set; }
             public string[] Arguments { get; set; }
+
+            internal Dictionary<string, string> NamedArguments { get; set; }
         }
     }
 }

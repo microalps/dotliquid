@@ -1131,10 +1131,12 @@ namespace DotLiquid
         /// Encodes a string to URL-safe Base64 format
         /// </summary>
         /// <see href="https://shopify.dev/api/liquid/filters#base64_url_safe_encode"/>
-        public static string Base64UrlSafeEncode(string input)
+        public static string Base64UrlSafeEncode(string input, [LiquidNamedArgument] bool pad = true)
         {
-            return (input == null) ? string.Empty
-                : Convert.ToBase64String(Encoding.UTF8.GetBytes(input)).Replace('+', '-').Replace('/', '_');
+            if (input == null)
+                return string.Empty;
+            var output = Convert.ToBase64String(Encoding.UTF8.GetBytes(input)).Replace('+', '-').Replace('/', '_');
+            return pad ? output : output.TrimEnd('=');
         }
 
         /// <summary>
