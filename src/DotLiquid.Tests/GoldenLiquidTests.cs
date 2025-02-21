@@ -1,12 +1,13 @@
-using NUnit.Framework;
-using System.Collections.Generic;
-using System.IO;
-using Newtonsoft.Json;
-using System.Globalization;
-using System;
-using System.Reflection;
+using DotLiquid.Exceptions;
 using DotLiquid.Tests.Model;
 using DotLiquid.Tests.Util;
+using Newtonsoft.Json;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace DotLiquid.Tests
 {
@@ -52,7 +53,8 @@ namespace DotLiquid.Tests
             return tests;
         }
 
-        public static List<GoldenLiquidTest> GoldenTestsPassing => GetGoldenTests(passing: true);
+        public static IEnumerable<GoldenLiquidTest> GoldenTestsPassing => GetGoldenTests(passing: true);
+        public static IEnumerable<GoldenLiquidTest> GoldenTestsFailing => GetGoldenTests(passing: false);
 
         private static T DeserializeResource<T>(string resourceName)
         {
@@ -98,12 +100,14 @@ namespace DotLiquid.Tests
             {
                 Liquid.UseRubyDateFormat = true;
                 if (test.Partials?.Count > 0)
+                {
                     Template.FileSystem = new DictionaryFileSystem(test.Partials);
+                }
 
                 // If the test should produce an error, assert that it does
                 if (test.Error)
                 {
-                    Assert.That(() => Template.Parse(test.Template, syntax).Render(parameters), Throws.Exception, test.UniqueName);
+                    Assert.Catch<LiquidException>(() => Template.Parse(test.Template, syntax).Render(parameters), test.UniqueName);
                 }
                 else
                 {
@@ -113,16 +117,11 @@ namespace DotLiquid.Tests
         }
 
         [Test]
-        public void ExecuteGoldenLiquidFailingTests()
+        [TestCaseSource(nameof(GoldenTestsFailing))]
+        public void ExecuteGoldenLiquidFailingTests(GoldenLiquidTest test)
         {
-            var tests = GetGoldenTests(passing: false);
-            Assert.Multiple(() =>
-            {
-                foreach (var test in tests)
-                {
-                    Assert.That(() => ExecuteGoldenLiquidTests(test), Throws.Exception, test.UniqueName);
-                }
-            });
+            Assert.Throws<AssertionException>(() => ExecuteGoldenLiquidTests(test), test.UniqueName);
         }
+
     }
 }
