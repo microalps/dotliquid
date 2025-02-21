@@ -37,7 +37,6 @@
         "liquid.golden.default_filter - render a default given a literal false with 'allow false' equal to false",
         "liquid.golden.default_filter - render a default given a literal false with 'allow false' equal to true",
         // DotLiquid #457
-        "liquid.golden.date_filter - seconds since epoch format directive",
         "liquid.golden.date_filter - timestamp string",
         // DotLiquid #549
         "liquid.golden.first_filter - first of a string",
