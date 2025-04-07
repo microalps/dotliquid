@@ -647,7 +647,9 @@ namespace DotLiquid
         [LiquidFilter(MinVersion = SyntaxCompatibility.DotLiquid21)]
         public static object Plus(Context context, object input, object operand)
         {
-            return DoMathsOperation(context, input, operand, Expression.AddChecked);
+            return DoMathOp(context, input, operand,
+                (isReal, num1, num2) => { var result = num1 + num2; return isReal ? result : ToIntegerType(result); },
+                (isReal, num1, num2) => { var result = num1 + num2; return isReal ? result : ToIntegerType(result); });
         }
 
         /// <summary>
@@ -658,7 +660,9 @@ namespace DotLiquid
         /// <param name="operand">Number to be subtracted from input</param>
         public static object Minus(Context context, object input, object operand)
         {
-            return DoMathsOperation(context, input, operand, Expression.SubtractChecked);
+            return DoMathOp(context, input, operand,
+                (isReal, num1, num2) => { var result = num1 - num2; return isReal ? result : ToIntegerType(result); },
+                (isReal, num1, num2) => { var result = num1 - num2; return isReal ? result : ToIntegerType(result); });
         }
 
         /// <summary>
@@ -668,7 +672,12 @@ namespace DotLiquid
         /// <param name="input">Input to be transformed by this filter</param>
         /// <param name="operand">Number to multiple input by</param>
         [LiquidFilter(MinVersion = SyntaxCompatibility.DotLiquid21)]
-        public static object Times(Context context, object input, object operand) => DoMathsOperation(context, input, operand, Expression.MultiplyChecked);
+        public static object Times(Context context, object input, object operand)
+        {
+            return DoMathOp(context, input, operand,
+                (isReal, num1, num2) => { var result = num1 * num2; return isReal ? result : ToIntegerType(result); },
+                (isReal, num1, num2) => { var result = num1 * num2; return isReal ? result : ToIntegerType(result); });
+        }
 
         /// <summary>
         /// Rounds a decimal value to the specified places
@@ -726,7 +735,9 @@ namespace DotLiquid
         /// <param name="operand">Number to divide input by</param>
         public static object DividedBy(Context context, object input, object operand)
         {
-            return DoMathsOperation(context, input, operand, Expression.Divide);
+            return DoMathOp(context, input, operand,
+                (isReal, num1, num2) => { var result = num1 / num2; return isReal ? result : ToIntegerType(Math.Floor(result)); },
+                (isReal, num1, num2) => { var result = num1 / num2; return isReal ? result : ToIntegerType(Math.Floor(result)); });
         }
 
         /// <summary>
@@ -737,7 +748,24 @@ namespace DotLiquid
         /// <param name="operand">Number to divide input by</param>
         public static object Modulo(Context context, object input, object operand)
         {
-            return DoMathsOperation(context, input, operand, Expression.Modulo);
+            return DoMathOp(context, input, operand,
+                (isReal, num1, num2) => { var result = num1 % num2; return isReal ? result : ToIntegerType(result); },
+                (isReal, num1, num2) => {
+                    // modulus with double is highly inaccurate, try casting to decimal
+                    try
+                    {
+                        var decNum1 = Convert.ToDecimal(num1);
+                        var decNum2 = Convert.ToDecimal(num2);
+
+                        var result = decNum1 % decNum2;
+                        return isReal ? result : ToIntegerType(result);
+                    }
+                    catch (OverflowException)
+                    {
+                        var result = num1 % num2;
+                        return isReal ? result : ToIntegerType(result);
+                    }
+                });
         }
 
         /// <summary>
@@ -1075,6 +1103,71 @@ namespace DotLiquid
             {
                 throw new ArgumentException(string.Format(Liquid.ResourceManager.GetString("Base64FilterInvalidInput"), Template.NamingConvention.GetMemberName(nameof(Base64UrlSafeDecode))));
             }
+        }
+
+        private static object DoMathOp(Context context, object num1, object num2, Func<bool, decimal, decimal, object> decimalLambda, Func<bool, double, double, object> doubleLambda)
+        {
+            num1 = NumericConverter.CoerceToNumericType(num1, context.FormatProvider, 0);
+            num2 = NumericConverter.CoerceToNumericType(num2, context.FormatProvider, 0);
+
+            if (num1 is double || num2 is double) // || num1 is float || num2 is float)
+                return DoMathOpDouble(num1, num2, doubleLambda);
+
+            try
+            {
+                var decNum1 = Convert.ToDecimal(num1);
+                var decNum2 = Convert.ToDecimal(num2);
+                var isReal = IsReal(num1) || IsReal(num2);
+
+                return decimalLambda(isReal, decNum1, decNum2);
+            }
+            catch (OverflowException)
+            {
+                return DoMathOpDouble(num1, num2, doubleLambda);
+            }
+        }
+
+        private static object DoMathOpDouble(object num1, object num2, Func<bool, double, double, object> doubleLambda)
+        {
+            var dblNum1 = Convert.ToDouble(num1);
+            var dblNum2 = Convert.ToDouble(num2);
+
+            return doubleLambda(true, dblNum1, dblNum2);
+        }
+
+
+        private static Dictionary<ulong, Type> PositiveRanges = new Dictionary<ulong, Type>() { { int.MaxValue, typeof(int) }, { uint.MaxValue, typeof(uint) }, { long.MaxValue, typeof(long) }, { ulong.MaxValue, typeof(int) } };
+        private static Dictionary<long, Type> NegativeRanges = new Dictionary<long, Type>() { { int.MinValue, typeof(int) }, { long.MinValue, typeof(long) } };
+
+        private static object ToIntegerType(double num)
+        {
+            if (Math.Floor(num) != num)
+                return num;
+
+            try
+            {
+                if (num < 0)
+                    return Convert.ChangeType(num, NegativeRanges.First(min => num >= min.Key).Value);
+
+                var bestType = PositiveRanges.FirstOrDefault(max => num <= max.Key).Value;
+                return bestType == null ? num : Convert.ChangeType(num, bestType);
+            }
+            catch (OverflowException)
+            {
+                return num;
+            }
+        }
+
+
+        private static object ToIntegerType(decimal num)
+        {
+            if (Math.Floor(num) != num)
+                return num;
+
+            if (num < 0)
+                return Convert.ChangeType(num, NegativeRanges.First(min => num >= min.Key).Value);
+
+            return Convert.ChangeType(num, PositiveRanges.FirstOrDefault(max => num <= max.Key).Value ?? typeof(decimal));
         }
     }
 

@@ -63,5 +63,13 @@ namespace DotLiquid.Tests.Filters
             Assert.That(TruncateWords("    one    two three    four  ", 2), Is.EqualTo("one two..."));
             Assert.That(TruncateWords("one  two\tthree\nfour", 3), Is.EqualTo("one two three..."));
         }
+
+        [Test]
+        public void TestPlusUsingStrings()
+        {
+            Assert.That(Plus("1", "2"), Is.EqualTo(3).And.TypeOf<int>());
+            Assert.That(Plus("-1", "2"), Is.EqualTo(1).And.TypeOf<int>());
+            Assert.That(Plus("1.1", "2"), Is.EqualTo(3.1).And.TypeOf<int>());
+        }
     }
 }
