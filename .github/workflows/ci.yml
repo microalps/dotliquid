@@ -8,6 +8,7 @@ on:
   workflow_call:
 
 env:
+  # Update src/DotLiquid/DotLiquid.csproj default Version/PackageVersion to match major/minor version
   PackageVersion: 2.4.${{ github.run_number }}
   Version: 2.4.${{ github.run_number }}
   InformationalVersion: 2.4.${{ github.run_number }}+${{ github.sha }}
@@ -62,3 +63,4 @@ jobs:
           name: nuget-packages
           path: build/pkg/*.*nupkg
           if-no-files-found: error
+          compression-level: 0
