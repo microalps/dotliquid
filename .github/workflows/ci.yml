@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [ master, develop ]
   push:
-    branches: [ master, develop ]
+    branches: [ develop ]
+  workflow_call:
 
 env:
   PackageVersion: 2.4.${{ github.run_number }}
@@ -51,3 +52,13 @@ jobs:
           fail_ci_if_error: false
           # No token needed: this is a public repo, so Codecov's tokenless upload (via GitHub OIDC) works
           # even for pull_request runs from forks, which otherwise would not have access to repo secrets.
+
+      - name: Pack
+        run: dotnet pack src/DotLiquid/DotLiquid.csproj --configuration Release --no-build --output build/pkg --include-symbols -p:SymbolPackageFormat=snupkg
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: build/pkg/*.*nupkg
+          if-no-files-found: error
