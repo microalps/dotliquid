@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ master, develop ]
+  push:
+    branches: [ master, develop ]
+
+env:
+  PackageVersion: 2.4.${{ github.run_number }}
+  Version: 2.4.${{ github.run_number }}
+  InformationalVersion: 2.4.${{ github.run_number }}+${{ github.sha }}
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+            6.0.x
+
+      - name: Restore
+        run: dotnet restore src/DotLiquid.sln --verbosity minimal
+
+      - name: Build
+        run: dotnet build src/DotLiquid.sln --configuration Release --no-restore --verbosity minimal
+
+      - name: Test
+        run: >-
+          dotnet test src/DotLiquid.Tests/DotLiquid.Tests.csproj
+          --configuration Release
+          --no-build
+          --verbosity minimal
+          --logger "console;verbosity=minimal"
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[DotLiquid]*"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # Pinned v5.5.5
+        with:
+          directory: TestResults
+          files: "**/coverage.cobertura.xml"
+          fail_ci_if_error: false
+          # No token needed: this is a public repo, so Codecov's tokenless upload (via GitHub OIDC) works
+          # even for pull_request runs from forks, which otherwise would not have access to repo secrets.
