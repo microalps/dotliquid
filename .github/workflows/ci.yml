@@ -48,7 +48,6 @@ jobs:
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # Pinned v5.5.5
         with:
           directory: TestResults
-          files: "**/coverage.cobertura.xml"
           fail_ci_if_error: false
           # No token needed: this is a public repo, so Codecov's tokenless upload (via GitHub OIDC) works
           # even for pull_request runs from forks, which otherwise would not have access to repo secrets.
