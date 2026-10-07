@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using DotLiquid.Exceptions;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -682,6 +683,28 @@ namespace DotLiquid.Tests
             Assert.That(_context["(1..5)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
             Assert.That(_context["(1..test)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
             Assert.That(_context["(test..test)"] as IEnumerable, Is.EqualTo(Enumerable.Range(5, 1)).AsCollection);
+        }
+
+
+        [Test]
+        public void TestRangeAtIntMaxValueTerminates()
+        {
+            _context.Merge(Hash.FromAnonymousObject(new { max = int.MaxValue }));
+            var range = _context["(max..max)"] as IEnumerable;
+
+            var enumerator = range.GetEnumerator();
+            var task = Task.Run(() =>
+            {
+                var result = new List<object>();
+                while (enumerator.MoveNext())
+                    result.Add(enumerator.Current);
+                return result;
+            });
+
+            var completed = task.Wait(TimeSpan.FromSeconds(5));
+
+            Assert.That(completed, Is.True, "Enumerating range (int.MaxValue..int.MaxValue) did not terminate within the timeout.");
+            Assert.That(task.Result, Is.EqualTo(new[] { int.MaxValue }));
         }
 
         [Test]

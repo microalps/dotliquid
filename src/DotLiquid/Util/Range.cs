@@ -91,21 +91,23 @@ namespace DotLiquid.Util
 
         #endregion
 
+        internal static int Comp<T>(T a, T b) where T : IComparable<T>
+        {
+            if (a is object)
+                return a.CompareTo(b);
+            return b is object ? -1 : 0;
+        }
+
         public static IEnumerable<T> Inclusive<T>(T start, T finish, Func<T, T> succ, Comparison<T> comp)
         {
             T value = start;
             while (comp(value, finish) <= 0)
             {
                 yield return value;
+                if (comp(value, finish) == 0)
+                    yield break;
                 value = succ(value);
             }
-        }
-
-        internal static int Comp<T>(T a, T b) where T : IComparable<T>
-        {
-            if (a != null)
-                return a.CompareTo(b);
-            return (b == null) ? 0 : -1;
         }
 
         public static IEnumerable<T> Inclusive<T>(T start, T finish, Func<T, T> succ)
