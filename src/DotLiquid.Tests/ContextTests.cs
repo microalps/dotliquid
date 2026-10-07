@@ -684,6 +684,15 @@ namespace DotLiquid.Tests
             Assert.That(_context["(1..5)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
             Assert.That(_context["(1..test)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
             Assert.That(_context["(test..test)"] as IEnumerable, Is.EqualTo(Enumerable.Range(5, 1)).AsCollection);
+
+            // (0..int.MaxValue) has int.MaxValue + 1 elements, which overflows Int32 when computed as (end - start + 1).
+            var ascendingRange = (_context[$"(0..{int.MaxValue})"] as IEnumerable).Cast<object>();
+            // Only take a few elements from the front to avoid materializing billions of items.
+            Assert.That(ascendingRange.Take(3), Is.EqualTo(new object[] { 0, 1, 2 }).AsCollection);
+
+            // (int.MaxValue..int.MinValue) is descending and should yield an empty range,
+            // not a huge positive count computed via overflowed Int32 arithmetic.
+            Assert.That(_context[$"({int.MaxValue}..{int.MinValue})"] as IEnumerable, Is.Empty);
         }
 
 

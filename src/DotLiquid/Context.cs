@@ -429,14 +429,7 @@ namespace DotLiquid
                         {
                             var startingRange = Convert.ToInt32(Resolve(match.Groups[1].Value));
                             var endingRange = Convert.ToInt32(Resolve(match.Groups[2].Value));
-                            var count = Math.Max(0, endingRange - startingRange + 1);
-
-                            if (MaxIterations > 0 && count > MaxIterations)
-                            {
-                                throw new MaximumIterationsExceededException(Tags.For.ForTagMaxIterationsExceededException, MaxIterations.ToString());
-                            }
-
-                            return Enumerable.Range(startingRange, count);
+                            return Util.Range.Inclusive(this, startingRange, endingRange);
                         }
                         break;
                     default:
