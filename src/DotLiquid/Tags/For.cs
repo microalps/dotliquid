@@ -57,7 +57,7 @@ namespace DotLiquid.Tags
     public class For : DotLiquid.Block
     {
         private static readonly Regex Syntax = R.B(R.Q(@"(\w+)\s+in\s+({0}+)\s*(reversed)?"), Liquid.QuotedFragment);
-        private static string ForTagMaxIterationsExceededException = Liquid.ResourceManager.GetString("ForTagMaximumIterationsExceededException");
+        internal static readonly string ForTagMaxIterationsExceededException = Liquid.ResourceManager.GetString("ForTagMaximumIterationsExceededException");
 
         private string _variableName, _collectionName, _name;
         private bool _reversed;

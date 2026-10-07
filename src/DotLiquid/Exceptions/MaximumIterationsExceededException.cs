@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DotLiquid.Exceptions
 {
-    class MaximumIterationsExceededException : RenderException
+    public class MaximumIterationsExceededException : RenderException
     {
         public MaximumIterationsExceededException(string message, params string[] args)
             : base(string.Format(message, args))

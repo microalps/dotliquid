@@ -713,6 +713,24 @@ namespace DotLiquid.Tests
         }
 
         [Test]
+        public void TestRangeExceedingMaxIterationsThrows()
+        {
+            var context = new Context(new List<Hash>(), new Hash(), new Hash(), ErrorsOutputMode.Display, maxIterations: 10, CultureInfo.InvariantCulture, CancellationToken.None);
+            
+            Assert.That(
+                () => (context["(1..100)"] as IEnumerable).Cast<object>().ToList(),
+                Throws.TypeOf<MaximumIterationsExceededException>());
+        }
+
+        [Test]
+        public void TestRangeWithinMaxIterationsSucceeds()
+        {
+            var context = new Context(new List<Hash>(), new Hash(), new Hash(), ErrorsOutputMode.Display, maxIterations: 10, CultureInfo.InvariantCulture, CancellationToken.None);
+            
+            Assert.That(context["(1..5)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
+        }
+
+        [Test]
         public void TestCentsThroughDropNestedly()
         {
             _context.Merge(Hash.FromAnonymousObject(new { cents = new { cents = new CentsDrop() } }));

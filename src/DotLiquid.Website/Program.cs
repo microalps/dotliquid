@@ -1,3 +1,4 @@
+using DotLiquid.Website;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,6 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddMemoryCache();
+
+builder.Services
+    .AddOptions<LiquidRenderingOptions>()
+    .Bind(builder.Configuration.GetSection(LiquidRenderingOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var app = builder.Build();
 
