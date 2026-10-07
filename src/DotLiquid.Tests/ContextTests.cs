@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DotLiquid.Exceptions;
 using Newtonsoft.Json;
@@ -692,19 +693,23 @@ namespace DotLiquid.Tests
             _context.Merge(Hash.FromAnonymousObject(new { max = int.MaxValue }));
             var range = _context["(max..max)"] as IEnumerable;
 
-            var enumerator = range.GetEnumerator();
-            var task = Task.Run(() =>
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2)))
             {
-                var result = new List<object>();
-                while (enumerator.MoveNext())
-                    result.Add(enumerator.Current);
-                return result;
-            });
+                var enumerator = range.GetEnumerator();
+                var task = Task.Run(() =>
+                {
+                    var result = new List<object>();
+                    while (enumerator.MoveNext())
+                    {
+                        cts.Token.ThrowIfCancellationRequested();
+                        result.Add(enumerator.Current);
+                    }
+                    return result;
+                }, cts.Token);
 
-            var completed = task.Wait(TimeSpan.FromSeconds(5));
-
-            Assert.That(completed, Is.True, "Enumerating range (int.MaxValue..int.MaxValue) did not terminate within the timeout.");
-            Assert.That(task.Result, Is.EqualTo(new[] { int.MaxValue }));
+                Assert.That(() => task.Wait(cts.Token), Throws.Nothing, "Enumerating range (int.MaxValue..int.MaxValue) did not terminate within the timeout.");
+                Assert.That(task.Result, Is.EqualTo(new[] { int.MaxValue }));
+            }
         }
 
         [Test]
