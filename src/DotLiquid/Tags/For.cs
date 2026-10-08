@@ -205,9 +205,6 @@ namespace DotLiquid.Tags
             {
                 context.CheckTimeout();
 
-                if (to != null && to.Value <= index)
-                    break;
-
                 if (from <= index)
                     segments.Add(item);
 
@@ -217,6 +214,9 @@ namespace DotLiquid.Tags
                 {
                     throw new MaximumIterationsExceededException(For.ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
                 }
+
+                if (to != null && to.Value <= index)
+                    break;
             }
             return segments;
         }

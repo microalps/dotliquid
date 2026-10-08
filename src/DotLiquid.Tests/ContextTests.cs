@@ -725,18 +725,27 @@ namespace DotLiquid.Tests
         public void TestRangeExceedingMaxIterationsThrows()
         {
             var context = new Context(new List<Hash>(), new Hash(), new Hash(), ErrorsOutputMode.Display, maxIterations: 10, CultureInfo.InvariantCulture, CancellationToken.None);
-            
-            Assert.That(
-                () => (context["(1..100)"] as IEnumerable).Cast<object>().ToList(),
-                Throws.TypeOf<MaximumIterationsExceededException>());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    () => (context["(1..100)"] as IEnumerable).Cast<object>().ToList(),
+                    Throws.TypeOf<MaximumIterationsExceededException>());
+                Assert.That(
+                    () => (context["(1..11)"] as IEnumerable).Cast<object>().ToList(),
+                    Throws.TypeOf<MaximumIterationsExceededException>());
+            });
         }
 
         [Test]
         public void TestRangeWithinMaxIterationsSucceeds()
         {
             var context = new Context(new List<Hash>(), new Hash(), new Hash(), ErrorsOutputMode.Display, maxIterations: 10, CultureInfo.InvariantCulture, CancellationToken.None);
-            
-            Assert.That(context["(1..5)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
+            Assert.Multiple(() =>
+            {
+                Assert.That(context["(1..5)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 5)).AsCollection);
+                Assert.That(context["(1..10)"] as IEnumerable, Is.EqualTo(Enumerable.Range(1, 10)).AsCollection);
+            });
         }
 
         [Test]
