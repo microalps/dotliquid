@@ -215,11 +215,19 @@ namespace DotLiquid.Tests.Tags
         public void TestLimiting()
         {
             Hash assigns = Hash.FromAnonymousObject(new { array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 } });
-            Helper.AssertTemplateResult("", "{%for i in array limit:0 %}{{ i }}{%endfor%}", assigns);
-            Helper.AssertTemplateResult("12", "{%for i in array limit:2 %}{{ i }}{%endfor%}", assigns);
-            Helper.AssertTemplateResult("1234", "{%for i in array limit:4 %}{{ i }}{%endfor%}", assigns);
-            Helper.AssertTemplateResult("3456", "{%for i in array limit:4 offset:2 %}{{ i }}{%endfor%}", assigns);
-            Helper.AssertTemplateResult("3456", "{%for i in array limit: 4 offset: 2 %}{{ i }}{%endfor%}", assigns);
+
+            Assert.Multiple(() =>
+            {
+                Helper.AssertTemplateResult("", "{%for i in array limit:0 %}{{ i }}{%endfor%}", assigns);
+                Helper.AssertTemplateResult("12", "{%for i in array limit:2 %}{{ i }}{%endfor%}", assigns);
+                Helper.AssertTemplateResult("1234", "{%for i in array limit:4 %}{{ i }}{%endfor%}", assigns);
+                Helper.AssertTemplateResult("3456", "{%for i in array limit:4 offset:2 %}{{ i }}{%endfor%}", assigns);
+                Helper.AssertTemplateResult("3456", "{%for i in array limit: 4 offset: 2 %}{{ i }}{%endfor%}", assigns);
+
+                // Tests adapted from Golden Liquid - Negative limit are treated as 0, so no iteration occurs.
+                Helper.AssertTemplateResult("", "{% for i in (0..5) offset: 1 limit: -1 %}{{ i }} {% endfor %}");
+                Helper.AssertTemplateResult("", "{% for i in (0..5) offset: -2 limit: -1 %}{{ i }} {% endfor %}");
+            });
         }
 
         [TestCase(5, TestName = "For loop range with limit (less than MaxIterations)")]
