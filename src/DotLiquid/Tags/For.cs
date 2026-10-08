@@ -201,6 +201,10 @@ namespace DotLiquid.Tags
         {
             List<object> segments = new List<object>();
             int index = 0;
+
+            if (from == to) // limit was specified as 0, so we don't need to iterate at all
+                return segments;
+
             foreach (object item in collection)
             {
                 context.CheckTimeout();
