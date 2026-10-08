@@ -222,6 +222,21 @@ namespace DotLiquid.Tests.Tags
         }
 
         [Test]
+        public void TestLimitingReducesConsumptionBelowMaxIterations()
+        {
+            // The range (1..100) has 100 elements, exceeding MaxIterations of 10, but the "limit:5"
+            // means only 5 elements are actually consumed by the For tag, so no exception should occur.
+            var template = Template.Parse(" {% for i in (1..100) limit:5 %} {{ i }} {% endfor %} ");
+            Assert.DoesNotThrow(() =>
+            {
+                template.Render(new RenderParameters(CultureInfo.InvariantCulture)
+                {
+                    MaxIterations = 10
+                });
+            });
+        }
+
+        [Test]
         public void TestDynamicVariableLimiting()
         {
             Hash assigns = Hash.FromAnonymousObject(new { array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 } });

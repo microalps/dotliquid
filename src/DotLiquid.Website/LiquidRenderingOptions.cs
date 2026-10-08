@@ -23,8 +23,9 @@ namespace DotLiquid.Website
 
         /// <summary>
         /// Maximum number of seconds rendering is allowed to run before being cancelled. A value of 0 means unlimited.
+        /// Capped at 3,600 seconds (1 hour) to prevent accidental runaway templates from consuming too many resources.
         /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "LiquidRendering:TimeoutSeconds must not be negative.")]
+        [Range(0, 3_600, ErrorMessage = "LiquidRendering:TimeoutSeconds must not be negative or exceed 1 hour.")]
         public int TimeoutSeconds { get; set; } = 5;
     }
 }
