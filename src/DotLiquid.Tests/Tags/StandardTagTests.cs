@@ -221,12 +221,13 @@ namespace DotLiquid.Tests.Tags
             Helper.AssertTemplateResult("3456", "{%for i in array limit: 4 offset: 2 %}{{ i }}{%endfor%}", assigns);
         }
 
-        [Test]
-        public void TestLimitingReducesConsumptionBelowMaxIterations()
+        [TestCase(5, TestName = "For loop range with limit (less than MaxIterations)")]
+        [TestCase(10, TestName = "For loop range with limit (equal to MaxIterations)")]
+        public void TestLimitingDoesNotExceedMaxIterations(int limit)
         {
-            // The range (1..100) has 100 elements, exceeding MaxIterations of 10, but the "limit:5"
-            // means only 5 elements are actually consumed by the For tag, so no exception should occur.
-            var template = Template.Parse(" {% for i in (1..100) limit:5 %} {{ i }} {% endfor %} ");
+            // The range (1..100) has 100 elements, exceeding MaxIterations of 10, but the "limit" attribute
+            // means only some elements are actually consumed by the For tag, so no exception should occur.
+            var template = Template.Parse($" {{% for i in (1..100) limit:{limit} %}} {{{{ i }}}} {{% endfor %}} ");
             Assert.DoesNotThrow(() =>
             {
                 template.Render(new RenderParameters(CultureInfo.InvariantCulture)

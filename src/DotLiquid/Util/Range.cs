@@ -19,8 +19,7 @@ namespace DotLiquid.Util
             long count = 0;
             do
             {
-                count++;
-                if (context.MaxIterations > 0 && count > context.MaxIterations)
+                if (context.MaxIterations > 0 && count++ > context.MaxIterations)
                 {
                     throw new MaximumIterationsExceededException(Tags.For.ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
                 }
