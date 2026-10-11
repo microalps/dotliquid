@@ -202,9 +202,6 @@ namespace DotLiquid.Tags
             List<object> segments = new List<object>();
             int index = 0;
 
-            if (from >= to) // limit was specified as 0 or negative, so we don't need to iterate at all
-                return segments;
-
             IEnumerator enumerator = collection.GetEnumerator();
             try
             {
