@@ -216,7 +216,7 @@ namespace DotLiquid.Tags
 
                     if (context.MaxIterations > 0 && index > context.MaxIterations)
                     {
-                        throw new MaximumIterationsExceededException(For.ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
+                        throw new MaximumIterationsExceededException(ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
                     }
                 }
             }

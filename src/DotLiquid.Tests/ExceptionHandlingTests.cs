@@ -82,12 +82,14 @@ namespace DotLiquid.Tests
         [Test]
         public void TestMaximumIterationsExceededError()
         {
-            var template = Template.Parse(" {% for i in (1..100000) %} {{ i }} {% endfor %} ");
+            var numberRange = System.Linq.Enumerable.Range(1, 1000000);
+            var template = Template.Parse(" {% for i in numbers %} {{ i }} {% endfor %} ");
             Assert.Throws<MaximumIterationsExceededException>(() =>
             {
                 template.Render(new RenderParameters(CultureInfo.InvariantCulture)
                 {
-                    MaxIterations = 50
+                    LocalVariables = Hash.FromAnonymousObject(new { numbers = numberRange }),
+                    MaxIterations = 50,
                 });
             });
         }
