@@ -227,6 +227,10 @@ namespace DotLiquid.Tests.Tags
                 // Tests adapted from Golden Liquid - Negative limit are treated as 0, so no iteration occurs.
                 Helper.AssertTemplateResult("", "{% for i in (0..5) offset: 1 limit: -1 %}{{ i }} {% endfor %}");
                 Helper.AssertTemplateResult("", "{% for i in (0..5) offset: -2 limit: -1 %}{{ i }} {% endfor %}");
+
+                // Tests suggested by Dobby Code Review - confirmed behavior in replit
+                Helper.AssertTemplateResult("", "{% for i in (1..5) offset:-2 limit:2 %}{{ i }}{% endfor %}");
+                Helper.AssertTemplateResult("1", "{% for i in (1..5) offset:-2 limit:3 %}{{ i }}{% endfor %}");
             });
         }
 

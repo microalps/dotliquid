@@ -205,23 +205,29 @@ namespace DotLiquid.Tags
             if (from >= to) // limit was specified as 0 or negative, so we don't need to iterate at all
                 return segments;
 
-            foreach (object item in collection)
+            IEnumerator enumerator = collection.GetEnumerator();
+            try
             {
-                context.CheckTimeout();
-
-                if (from <= index)
-                    segments.Add(item);
-
-                ++index;
-
-                if (context.MaxIterations > 0 && index > context.MaxIterations)
+                while ((to == null || to.Value > index) && enumerator.MoveNext())
                 {
-                    throw new MaximumIterationsExceededException(For.ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
-                }
+                    context.CheckTimeout();
 
-                if (to != null && to.Value <= index)
-                    break;
+                    if (from <= index)
+                        segments.Add(enumerator.Current);
+
+                    ++index;
+
+                    if (context.MaxIterations > 0 && index > context.MaxIterations)
+                    {
+                        throw new MaximumIterationsExceededException(For.ForTagMaxIterationsExceededException, context.MaxIterations.ToString());
+                    }
+                }
             }
+            finally
+            {
+                (enumerator as IDisposable)?.Dispose();
+            }
+
             return segments;
         }
     }
